@@ -77,7 +77,7 @@ export default function RoomLobbyPage() {
 
       // Sync ready state from server
       if (session?.user?.id) {
-        const me = data.players.find((p: any) => p.id === session.user.id);
+        const me = data.players.find((p: any) => p.id === session?.user?.id);
         if (me) setIsReady(me.isReady);
       }
 

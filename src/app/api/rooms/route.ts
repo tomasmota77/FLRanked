@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         timerMinutes: parseInt(timerMinutes) || 10,
         isPrivate: !!isPrivate,
         password: password || null,
-        hostId: session.user.id,
+        hostId: session.user.id as string,
         lastHeartbeatAt: new Date(),
       }
     });
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
     await db.roomPlayer.create({
       data: {
         roomId: room.id,
-        userId: session.user.id,
+        userId: session.user.id as string,
         isReady: true,
         lastHeartbeatAt: new Date(),
       }

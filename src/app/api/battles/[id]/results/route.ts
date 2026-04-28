@@ -49,7 +49,7 @@ export async function GET(
         votes: s.votes.length,
         rank: s.user.rank,
         oldElo: s.user.elo,
-        isYou: s.user.id === session.user.id,
+        isYou: s.user.id === session?.user?.id,
         audioUrl: s.audioUrl,
       }))
       .sort((a, b) => b.votes - a.votes);

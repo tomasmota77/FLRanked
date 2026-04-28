@@ -1,7 +1,57 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Trophy, 
+  Crown, 
+  ThumbsUp, 
+  TrendingUp, 
+  TrendingDown, 
+  Swords, 
+  ArrowRight, 
+  Download,
+  Loader2
+} from "lucide-react";
 import Link from "next/link";
 import Chat from "@/components/Chat";
+
+interface Result {
+  id: string;
+  userId: string;
+  username: string;
+  votes: number;
+  rank: string;
+  oldElo: number;
+  newElo: number;
+  eloChange: number;
+  position: number;
+  isYou: boolean;
+  audioUrl: string;
+}
+
+const RANK_COLORS: Record<string, string> = {
+  "Bronze": "#CD7F32",
+  "Silver": "#C0C0C0",
+  "Gold": "#FFD700",
+  "Platinum": "#E5E4E2",
+  "Diamond": "#B9F2FF",
+  "Master": "#FF00FF",
+};
+
+const POSITION_STYLES = [
+  { bg: "from-rank-gold/20 to-transparent", border: "border-rank-gold/30", color: "text-rank-gold" },
+  { bg: "from-rank-gold/15 to-transparent", border: "border-rank-gold/25", color: "text-rank-gold" },
+  { bg: "from-rank-platinum/15 to-transparent", border: "border-rank-platinum/25", color: "text-rank-platinum" },
+  { bg: "from-rank-bronze/10 to-transparent", border: "border-rank-bronze/20", color: "text-rank-bronze" },
+];
+
+const Confetti = () => (
+  <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+    <div className="w-full h-full animate-pulse opacity-50 bg-[radial-gradient(circle,_var(--neon-purple)_1px,_transparent_1px)] bg-[size:20px_20px]" />
+  </div>
+);
 
 export default function ResultsPage() {
   const params = useParams();
