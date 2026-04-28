@@ -1,0 +1,269 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum RoomType {
+  ONE_V_ONE
+  FOUR_PLAYERS
+  EIGHT_PLAYERS
+  SIXTEEN_PLAYERS
+  TOURNAMENT
+}
+
+enum RoomStatus {
+  WAITING
+  IN_PROGRESS
+  LISTENING
+  VOTING
+  FINISHED
+}
+
+enum Rank {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  MASTER
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String    @unique
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(USER)
+  elo           Int       @default(1000)
+  xp            Int       @default(0)
+  wins          Int       @default(0)
+  losses        Int       @default(0)
+  streak        Int       @default(0)
+  bestStreak    Int       @default(0)
+  rank          Rank      @default(BRONZE)
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  hostedRooms   Room[]         @relation("RoomHost")
+  roomPlayers   RoomPlayer[]
+  submissions   Submission[]
+  votes         Vote[]
+  messages      Message[]
+  achievements  UserAchievement[]
+  reports       Report[]       @relation("Reporter")
+  reportedBy    Report[]       @relation("Reported")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Room {
+  id              String       @id @default(cuid())
+  name            String
+  type            RoomType     @default(FOUR_PLAYERS)
+  maxPlayers      Int          @default(4)
+  status          RoomStatus   @default(WAITING)
+  isPrivate       Boolean      @default(false)
+  password        String?
+  bpm             Int          @default(140)
+  genre           String       @default("Trap")
+  theme           String?
+  timerMinutes    Int          @default(10)
+  hostId          String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  lastHeartbeatAt DateTime     @default(now())
+
+  host     User         @relation("RoomHost", fields: [hostId], references: [id])
+  players  RoomPlayer[] @relation("RoomToPlayer")
+  battles  Battle[]
+  messages Message[]
+
+  @@map("rooms")
+}
+
+model RoomPlayer {
+  id              String   @id @default(cuid())
+  roomId          String
+  userId          String
+  isReady         Boolean  @default(false)
+  joinedAt        DateTime @default(now())
+  lastHeartbeatAt DateTime @default(now())
+
+  room Room @relation("RoomToPlayer", fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("room_players")
+}
+
+model Battle {
+  id           String     @id @default(cuid())
+  roomId       String
+  samplePackId String?
+  startedAt    DateTime   @default(now())
+  endedAt      DateTime?
+  winnerId     String?
+  bpm          Int        @default(140)
+  genre        String     @default("Trap")
+  theme        String?
+  timerMinutes Int        @default(10)
+  status       RoomStatus @default(IN_PROGRESS)
+  statusChangedAt DateTime @default(now())
+
+  room         Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  samplePack   SamplePack?  @relation(fields: [samplePackId], references: [id])
+  submissions  Submission[]
+  votes        Vote[]
+
+  @@map("battles")
+}
+
+model SamplePack {
+  id        String   @id @default(cuid())
+  name      String
+  genre     String   @default("Trap")
+  files     Json     // Array of { name, url, type }
+  createdAt DateTime @default(now())
+
+  battles   Battle[]
+
+  @@map("sample_packs")
+}
+
+model Submission {
+  id        String   @id @default(cuid())
+  userId    String
+  battleId  String
+  audioUrl  String
+  fileName  String
+  createdAt DateTime @default(now())
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  battle  Battle @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  votes   Vote[]
+
+  @@unique([userId, battleId])
+  @@map("submissions")
+}
+
+model Vote {
+  id           String   @id @default(cuid())
+  voterId      String
+  submissionId String
+  battleId     String
+  createdAt    DateTime @default(now())
+
+  voter      User       @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  battle     Battle     @relation(fields: [battleId], references: [id], onDelete: Cascade)
+
+  @@unique([voterId, battleId])
+  @@map("votes")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  roomId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  icon        String
+  xpReward    Int    @default(0)
+
+  users UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  reportedId String
+  reason     String
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
